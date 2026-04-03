@@ -1,0 +1,330 @@
+<!doctype html>
+<html>
+  <head>
+    <title>PEW PEW</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        padding: 10px;
+        margin: 0;
+        color: #f0f0f0;
+
+        background:
+          linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+          url("images/img1.jpg");
+
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+      }
+      
+
+      /* HEADER */
+
+      h1 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #27293d;
+        color: #ffffff;
+
+        padding: 2px 14px; /* smaller padding */
+        border-radius: 8px;
+
+        font-size: 18px; /* smaller text */
+        margin-top: 0; /* reduce vertical space */
+      }
+
+      /* TIMER */
+
+      #timer {
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #ac1100;
+
+        padding: 2px 10px; /* smaller box */
+        border-radius: 6px;
+        margin: 0;
+      }
+
+      /* CONTROLS */
+
+      select,
+      button {
+        padding: 6px 12px;
+        border-radius: 5px;
+        border: none;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+
+      button {
+        background-color: #002d97;
+        color: white;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #3867d6;
+      }
+
+      /* QUESTION CARD */
+
+      .question {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #2f334b;
+        border: 1px solid #444;
+      }
+
+      /* OPTIONS GRID */
+
+      .options-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      /* OPTION CARD */
+
+      .option-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 8px;
+        border-radius: 6px;
+        background-color: #3a3f5a;
+        border: 1px solid #444;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      .option-item:hover {
+        background-color: #4b4f70;
+      }
+
+      .option-item input {
+        margin-right: 6px;
+        transform: scale(1.1);
+      }
+
+      select {
+        width: 100%;
+        margin-top: 5px;
+      }
+      label {
+        display: block;
+        margin-top: 10px;
+        margin-bottom: 5px;
+      }
+      .control-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .control-box {
+        background-color: #27293d;
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 10px;
+      }
+
+      .control-box label {
+        margin-top: 0;
+        font-weight: bold;
+      }
+
+      .control-box select {
+        width: 100%;
+        margin-top: 5px;
+      }
+      /* MOBILE */
+
+      @media (max-width: 600px) {
+        h1 {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        #timer {
+          font-size: 18px;
+        }
+
+        .options-grid {
+          grid-template-columns: 1fr;
+        }
+
+        select,
+        button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1
+      style="display: flex; justify-content: space-between; align-items: center"
+    >
+      BUDA
+      <p id="timer">Time: 0:00</p>
+    </h1>
+    <div class="control-row">
+      <div class="control-box">
+        <label for="topic">Select Topic</label>
+        <select id="topic">
+          <option>Indian Politics</option>
+          <option>History</option>
+          <option>Geography</option>
+          <option>Science & Technology</option>
+          <option>Current Affairs</option>
+          <option>Economy</option>
+        </select>
+      </div>
+
+      <div class="control-box">
+        <label for="numQuestions">No of Question</label>
+        <select id="numQuestions">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="15" selected>15</option>
+          <option value="20">20</option>
+          <option value="25">25</option>
+          <option value="30">30</option>
+        </select>
+      </div>
+    </div>
+
+    <button onclick="getQuiz()">Chudau</button>
+    <label>Faaaaaaaaaaaaaaaaaaaaaaaaaaaaaak</label>
+    <div id="quiz"></div>
+    <h2 id="score"></h2>
+
+    <script>
+      let currentQuiz = [];
+      let currentIndex = 0;
+      let score = 0;
+      let userAnswers = []; // store selected answers
+      let startTime = 0; // will start on first answer
+      let timerInterval = 0; // interval ID for live timer
+
+      async function getQuiz() {
+        const topic = document.getElementById("topic").value;
+        const numQuestions =
+          parseInt(document.getElementById("numQuestions").value) || 10;
+
+        const res = await fetch("generate-quiz", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, numQuestions }),
+        });
+
+        const data = await res.json();
+
+        if (typeof data.quiz === "string") {
+          try {
+            currentQuiz = JSON.parse(data.quiz);
+          } catch {
+            alert("AI returned invalid format. Try again.");
+            return;
+          }
+        } else {
+          currentQuiz = data.quiz;
+        }
+
+        currentIndex = 0;
+        score = 0;
+        userAnswers = [];
+        startTime = 0;
+        document.getElementById("timer").innerText = "Time: 0:00";
+        showQuestion();
+      }
+
+      function showQuestion() {
+        const container = document.getElementById("quiz");
+        container.innerHTML = "";
+
+        if (currentIndex >= currentQuiz.length) {
+          // Stop live timer
+          if (timerInterval) clearInterval(timerInterval);
+
+          const totalSeconds = Math.floor((Date.now() - startTime) / 1000);
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+
+          let html = `<h3>Quiz Completed!</h3>`;
+          html += `<p>Your Score: ${score} / ${currentQuiz.length}</p>`;
+          html += `<p>Total Time Spent: ${minutes} min ${seconds} sec</p>`;
+
+          // Show review of all questions
+          currentQuiz.forEach((q, i) => {
+            const userAns = userAnswers[i];
+            const isCorrect = userAns === q.answer;
+            html += `
+        <div class="question">
+          <p><b>Q${i + 1}: ${q.question}</b></p>
+          <p><b>Your Answer:</b> ${userAns} ${isCorrect ? "✅" : "❌"}</p>
+          <p><b>Correct Answer:</b> ${q.answer}</p>
+          <p>${q.explanation}</p>
+        </div>
+      `;
+          });
+
+          container.innerHTML = html;
+          return;
+        }
+
+        const q = currentQuiz[currentIndex];
+        let html = `<p><b>Q${currentIndex + 1}: ${q.question}</b></p>`;
+        html += `<div class="options-grid">`;
+
+        q.options.forEach((opt) => {
+          html += `
+      <label class="option-item">
+        <input type="radio" name="q${currentIndex}" value="${opt}" onclick="nextQuestion('${opt}')">
+        ${opt}
+      </label>
+    `;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
+      }
+
+      function nextQuestion(selected) {
+        // Start timer on first answer
+        if (currentIndex === 0 && !startTime) {
+          startTime = Date.now();
+          timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById("timer").innerText =
+              `Time: ${minutes}:${seconds.toString().padStart(2, "0")}`;
+          }, 1000);
+        }
+
+        userAnswers.push(selected);
+
+        const q = currentQuiz[currentIndex];
+        if (selected === q.answer) score++;
+
+        currentIndex++;
+        showQuestion();
+      }
+
+      const numQuestions =
+        parseInt(document.getElementById("numQuestions").value) || 10;
+    </script>
+  </body>
+</html>
